@@ -1,16 +1,17 @@
 import streamlit as st
 import os
+from datetime import datetime
 
 # Sahifa sozlamalari
-st.set_page_config(page_title="Fizika: Issiqlik Miqdori Testi", page_icon="🔥", layout="centered")
+st.set_page_config(page_title="Fizika: Issiqlik Miqdori Testi (Face ID)", page_icon="🔥", layout="centered")
 
-st.title("🔥 Fizika fanidan ovozli test")
-st.subheader("Mavzu: Issiqlik Miqdori")
+st.title("Fizika fanidan ovozli test")
+st.subheader("Mavzu: Issiqlik Miqdori (Kamera nazorati bilan)")
 st.markdown("---")
 
 # 1. FOYDALANUVCHI MA'LUMOTLARINI SO'RASH QISMI
-st.markdown("### 📋 O'quvchi ma'lumotlari")
-st.write("Testni boshlashdan oldin quyidagi maydonlarni to'ldiring:")
+st.markdown("### 📋 1-Qadam: O'quvchi ma'lumotlari")
+st.write("Testni boshlashdan oldin ma'lumotlaringizni kiriting:")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -95,60 +96,70 @@ savollar_bazasi = [
     }
 ]
 
-# Agar ism, familiya va sinf to'liq kiritilgan bo'lsa, testni ko'rsatamiz
+# 2. KAMERA BILAN SHAXSNI TASDIQLASH QISMI
 if ism.strip() and familiya.strip() and sinf.strip():
+    st.markdown("### 📸 2-Qadam: Face ID (Identifikatsiya)")
+    st.write("Imtihon shaffofligini ta'minlash uchun pastdagi tugmani bosib, kameraga qarab rasmga tushing:")
     
-    st.success(f"Omad tilaymiz, {ism} {familiya}! Savollarni eshiting va javob qoldiring.")
-    user_answers = {}
-
-    # Savollarni chiqarish loopi
-    for item in savollar_bazasi:
-        st.markdown(f"### {item['savol']}")
-        
-        # Audio fayl yo'li
-        audio_path = os.path.join("audio_files", item["audio"])
-        
-        if os.path.exists(audio_path):
-            st.audio(audio_path, format="audio/m4a")
-        else:
-            st.warning(f"Audio fayl topilmadi: {item['audio']}")
-            
-        izoh = f"Savol-{item['id']} uchun javob"
-        user_answers[item["id"]] = st.radio(izoh, item["variantlar"], index=None, key=f"q_{item['id']}", label_visibility="collapsed")
+    # Kamera komponenti
+    rasm_fayli = st.camera_input("Kameraga qarang va rasmga tushish tugmasini bosing")
+    
+    if rasm_fayli is not None:
+        st.success("Face ID tasdiqlandi! Pastga tushib test savollariga javob berishingiz mumkin.")
         st.markdown("---")
-
-    # Tekshirish tugmasi
-    if st.button("Testni yakunlash va Natijani ko'rish", type="primary"):
-        belgilanmaganlar = any(user_answers[item["id"]] is None for item in savollar_bazasi)
         
-        if belgilanmaganlar:
-            st.error("Iltimos, barcha savollarga javob belgilang, keyin testni yakunlang!")
-        else:
-            togri_javoblar_soni = 0
-            
-            # Natijalar paneli
-            st.markdown("## 📊 IMTIHON NATIJALARI")
-            st.info(f"👤 **O'quvchi:** {familiya} {ism} | 🏫 **Sinf:** {sinf}")
-            st.markdown("---")
-            
-            for item in savollar_bazasi:
-                u_ans = user_answers[item["id"]]
-                t_ans = item["togri_javob"]
-                
-                if u_ans == t_ans:
-                    togri_javoblar_soni += 1
-                    st.success(f"✅ **Savol {item['id']}: TO'G'RI.** \n\n Sizning javobingiz: {u_ans}")
-                else:
-                    st.error(f"❌ **Savol {item['id']}: NOTO'G'RI.** \n\n *Siz belgilagan javob:* {u_ans} \n\n *To'g'ri javob:* {t_ans}")
-                st.markdown(" ")
-            
-            # Yakuniy natija hisobi
-            foiz = (togri_javoblar_soni / len(savollar_bazasi)) * 100
-            st.balloons()
-            
-            st.markdown("### 🏆 Yakuniy Ko'rsatkich:")
-            st.metric(label="To'g'ri javoblar", value=f"{togri_javoblar_soni} / {len(savollar_bazasi)}", delta=f"{foiz}% natija")
+        # 3. TEST SAVOLLARINI KO'RSATISH
+        st.markdown("### 📝 3-Qadam: Test savollari")
+        user_answers = {}
 
+        for item in savollar_bazasi:
+            st.markdown(f"#### {item['savol']}")
+            
+            audio_path = os.path.join("audio_files", item["audio"])
+            if os.path.exists(audio_path):
+                st.audio(audio_path, format="audio/m4a")
+            else:
+                st.warning(f"Audio fayl topilmadi: {item['audio']}")
+                
+            izoh = f"Savol-{item['id']} uchun javob"
+            user_answers[item["id"]] = st.radio(izoh, item["variantlar"], index=None, key=f"q_{item['id']}", label_visibility="collapsed")
+            st.markdown("---")
+
+        # Tekshirish tugmasi
+        if st.button("Testni yakunlash va Natijani ko'rish", type="primary"):
+            belgilanmaganlar = any(user_answers[item["id"]] is None for item in savollar_bazasi)
+            
+            if belgilanmaganlar:
+                st.error("Iltimos, barcha savollarga javob belgilang, keyin testni yakunlang!")
+            else:
+                togri_javoblar_soni = 0
+                
+                # Natijalar paneli
+                st.markdown("## 📊 IMTIHON NATIJALARI")
+                st.info(f"👤 **O'quvchi:** {familiya} {ism} | 🏫 **Sinf:** {sinf}")
+                
+                # O'quvchining rasmini natija varog'ida ko'rsatish
+                st.image(rasm_fayli, caption=f"{ism} {familiya} imtihon vaqtidagi surati", width=250)
+                st.markdown("---")
+                
+                for item in savollar_bazasi:
+                    u_ans = user_answers[item["id"]]
+                    t_ans = item["togri_javob"]
+                    
+                    if u_ans == t_ans:
+                        togri_javoblar_soni += 1
+                        st.success(f"✅ **Savol {item['id']}: TO'G'RI.** \n\n Sizning javobingiz: {u_ans}")
+                    else:
+                        st.error(f"❌ **Savol {item['id']}: NOTO'G'RI.** \n\n *Siz belgilagan javob:* {u_ans} \n\n *To'g'ri javob:* {t_ans}")
+                    st.markdown(" ")
+                
+                # Yakuniy natija hisobi
+                foiz = (togri_javoblar_soni / len(savollar_bazasi)) * 100
+                st.balloons()
+                
+                st.markdown("### 🏆 Yakuniy Ko'rsatkich:")
+                st.metric(label="To'g'ri javoblar", value=f"{togri_javoblar_soni} / {len(savollar_bazasi)}", delta=f"{foiz}% natija")
+    else:
+        st.info("ℹ️ Savollar ochilishi uchun iltimos yuqoridagi kamera orqali rasmga tushing.")
 else:
-    # Agar ma'lumotlar to'liq kiritilmagan bo'lsa ogohlantirish chiqarib turadi
-    st.warning("⚠️ Test savollarini ko'rish uchun yuqoridagi maydonlarga Ismingiz, Familiyangiz va Sinfingizni yozing!")
+    st.warning("⚠️ Testni boshlash uchun avval Ismingiz, Familiyangiz va Sinfingizni to'liq kiriting!")
